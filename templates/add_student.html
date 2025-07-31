@@ -1,0 +1,277 @@
+{% extends "base.html" %} {% block title %}Thêm sinh viên mới{% endblock %} {%
+block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-user-plus"></i> Thêm sinh viên mới
+        </h5>
+      </div>
+      <div class="card-body">
+        <form id="addStudentForm">
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="name" class="form-label">
+                  Họ và tên <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="Nhập họ và tên sinh viên"
+                />
+                <div class="invalid-feedback">Vui lòng nhập họ và tên</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+              <div class="mb-3">
+                <label for="email" class="form-label">
+                  Email <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                  required
+                  placeholder="Nhập email sinh viên"
+                />
+                <div class="invalid-feedback">Vui lòng nhập email hợp lệ</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="age" class="form-label">Tuổi</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="age"
+                  name="age"
+                  min="16"
+                  max="100"
+                  placeholder="Nhập tuổi"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="major" class="form-label">Chuyên ngành</label>
+                <select class="form-select" id="major" name="major">
+                  <option value="">Chọn chuyên ngành</option>
+                  <option value="Khoa học máy tính">Khoa học máy tính</option>
+                  <option value="Data Science">Data Science</option>
+                  <option value="Kỹ thuật phần mềm">Kỹ thuật phần mềm</option>
+                  <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+                  <option value="An toàn thông tin">An toàn thông tin</option>
+                  <option value="Trí tuệ nhân tạo">Trí tuệ nhân tạo</option>
+                  <option value="Mạng máy tính">Mạng máy tính</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="loading text-center" style="display: none">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Đang xử lý...</span>
+            </div>
+            <p class="mt-2">Đang thêm sinh viên...</p>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a href="/" class="btn btn-secondary">
+              <i class="fas fa-arrow-left"></i> Quay lại
+            </a>
+            <div>
+              <button type="reset" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-undo"></i> Làm mới
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Thêm sinh viên
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Preview Card -->
+    <div class="card mt-4" id="previewCard" style="display: none">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-eye"></i> Xem trước thông tin</h6>
+      </div>
+      <div class="card-body">
+        <div id="previewContent">
+          <!-- Preview will be shown here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("addStudentForm");
+    const inputs = form.querySelectorAll("input, select");
+
+    // Add input event listeners for real-time preview
+    inputs.forEach((input) => {
+      input.addEventListener("input", updatePreview);
+    });
+
+    // Form submission
+    form.addEventListener("submit", handleSubmit);
+
+    // Form reset
+    form.addEventListener("reset", function () {
+      setTimeout(() => {
+        updatePreview();
+        clearValidation();
+      }, 10);
+    });
+  });
+
+  function updatePreview() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const age = document.getElementById("age").value;
+    const major = document.getElementById("major").value;
+
+    const previewCard = document.getElementById("previewCard");
+    const previewContent = document.getElementById("previewContent");
+
+    if (!name && !email && !age && !major) {
+      previewCard.style.display = "none";
+      return;
+    }
+
+    previewCard.style.display = "block";
+
+    previewContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="mb-1">
+                    <i class="fas fa-user"></i> ${name || "Chưa nhập tên"}
+                </h6>
+                <p class="text-muted mb-1">
+                    <i class="fas fa-envelope"></i> ${
+                      email || "Chưa nhập email"
+                    }
+                </p>
+                <div class="d-flex gap-3">
+                    ${
+                      age
+                        ? `<small class="text-muted"><i class="fas fa-birthday-cake"></i> ${age} tuổi</small>`
+                        : ""
+                    }
+                    ${
+                      major
+                        ? `<small class="text-muted"><i class="fas fa-graduation-cap"></i> ${major}</small>`
+                        : ""
+                    }
+                </div>
+                <small class="text-muted">
+                    <i class="fas fa-clock"></i> ${new Date().toLocaleDateString(
+                      "vi-VN"
+                    )}
+                </small>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="badge bg-success">Mới</span>
+            </div>
+        </div>
+    `;
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const data = {
+      name: formData.get("name").trim(),
+      email: formData.get("email").trim(),
+      age: formData.get("age") ? parseInt(formData.get("age")) : null,
+      major: formData.get("major") || null,
+    };
+
+    // Client-side validation
+    if (!data.name || !data.email) {
+      showToast("Vui lòng nhập đầy đủ thông tin bắt buộc", "error");
+      highlightErrors();
+      return;
+    }
+
+    if (!isValidEmail(data.email)) {
+      showToast("Email không hợp lệ", "error");
+      document.getElementById("email").classList.add("is-invalid");
+      return;
+    }
+
+    try {
+      clearValidation();
+
+      const result = await apiRequest("/api/students", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      showToast(`Thêm sinh viên "${data.name}" thành công!`);
+
+      // Reset form after successful submission
+      e.target.reset();
+      updatePreview();
+
+      // Redirect to home page after 2 seconds
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+    } catch (error) {
+      // Error handling is done in apiRequest function
+      if (error.message.includes("Email đã tồn tại")) {
+        document.getElementById("email").classList.add("is-invalid");
+      }
+    }
+  }
+
+  function highlightErrors() {
+    const name = document.getElementById("name");
+    const email = document.getElementById("email");
+
+    if (!name.value.trim()) {
+      name.classList.add("is-invalid");
+    }
+
+    if (!email.value.trim()) {
+      email.classList.add("is-invalid");
+    }
+  }
+
+  function clearValidation() {
+    const inputs = document.querySelectorAll(".form-control, .form-select");
+    inputs.forEach((input) => {
+      input.classList.remove("is-invalid");
+    });
+  }
+
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  // Clear validation on input
+  document.querySelectorAll(".form-control, .form-select").forEach((input) => {
+    input.addEventListener("input", function () {
+      this.classList.remove("is-invalid");
+    });
+  });
+</script>
+{% endblock %}

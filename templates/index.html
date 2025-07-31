@@ -1,0 +1,374 @@
+{% extends "base.html" %} {% block title %}Danh sách sinh viên{% endblock %} {%
+block content %}
+<div class="row">
+  <div class="col-md-8">
+    <div class="card">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0"><i class="fas fa-users"></i> Danh sách sinh viên</h5>
+        <div>
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            onclick="loadStudents()"
+          >
+            <i class="fas fa-refresh"></i> Tải lại
+          </button>
+          <a href="/add_student" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Thêm mới
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="loading">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Đang tải...</span>
+          </div>
+          <p>Đang tải danh sách sinh viên...</p>
+        </div>
+
+        <div id="students-container">
+          <!-- Students will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <!-- Statistics Card -->
+    <div class="card stats-card mb-4">
+      <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-chart-bar"></i> Thống kê</h5>
+        <div id="stats-content">
+          <div class="loading">
+            <div class="spinner-border text-light" role="status">
+              <span class="visually-hidden">Đang tải...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart Card -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-pie-chart"></i> Biểu đồ chuyên ngành
+        </h6>
+      </div>
+      <div class="card-body">
+        <canvas id="majorChart" width="400" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Student Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="fas fa-edit"></i> Chỉnh sửa sinh viên
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">
+          <input type="hidden" id="editStudentId" />
+          <div class="mb-3">
+            <label for="editName" class="form-label">Họ tên *</label>
+            <input type="text" class="form-control" id="editName" required />
+          </div>
+          <div class="mb-3">
+            <label for="editEmail" class="form-label">Email *</label>
+            <input type="email" class="form-control" id="editEmail" required />
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editAge" class="form-label">Tuổi</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="editAge"
+                  min="16"
+                  max="100"
+                />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="editMajor" class="form-label">Chuyên ngành</label>
+                <select class="form-select" id="editMajor">
+                  <option value="">Chọn chuyên ngành</option>
+                  <option value="Khoa học máy tính">Khoa học máy tính</option>
+                  <option value="Data Science">Data Science</option>
+                  <option value="Kỹ thuật phần mềm">Kỹ thuật phần mềm</option>
+                  <option value="Hệ thống thông tin">Hệ thống thông tin</option>
+                  <option value="An toàn thông tin">An toàn thông tin</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Hủy
+        </button>
+        <button type="button" class="btn btn-primary" onclick="updateStudent()">
+          <i class="fas fa-save"></i> Lưu thay đổi
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block scripts %}
+<script>
+  let studentsData = [];
+  let chart = null;
+
+  // Load students on page load
+  document.addEventListener("DOMContentLoaded", function () {
+    loadStudents();
+    loadStats();
+  });
+
+  async function loadStudents() {
+    try {
+      const students = await apiRequest("/api/students");
+      studentsData = students;
+      displayStudents(students);
+    } catch (error) {
+      document.getElementById("students-container").innerHTML =
+        '<div class="alert alert-danger">Không thể tải danh sách sinh viên</div>';
+    }
+  }
+
+  function displayStudents(students) {
+    const container = document.getElementById("students-container");
+
+    if (students.length === 0) {
+      container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Chưa có sinh viên nào</p>
+                <a href="/add_student" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Thêm sinh viên đầu tiên
+                </a>
+            </div>
+        `;
+      return;
+    }
+
+    container.innerHTML = students
+      .map(
+        (student) => `
+        <div class="student-card border rounded p-3 mb-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h6 class="mb-1">
+                        <i class="fas fa-user"></i> ${student.name}
+                    </h6>
+                    <p class="text-muted mb-1">
+                        <i class="fas fa-envelope"></i> ${student.email}
+                    </p>
+                    <div class="d-flex gap-3">
+                        ${
+                          student.age
+                            ? `<small class="text-muted"><i class="fas fa-birthday-cake"></i> ${student.age} tuổi</small>`
+                            : ""
+                        }
+                        ${
+                          student.major
+                            ? `<small class="text-muted"><i class="fas fa-graduation-cap"></i> ${student.major}</small>`
+                            : ""
+                        }
+                    </div>
+                    ${
+                      student.created_at
+                        ? `<small class="text-muted"><i class="fas fa-clock"></i> ${new Date(
+                            student.created_at
+                          ).toLocaleDateString("vi-VN")}</small>`
+                        : ""
+                    }
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-primary btn-sm me-1" onclick="editStudent(${
+                      student.id
+                    })">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteStudent(${
+                      student.id
+                    }, '${student.name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `
+      )
+      .join("");
+  }
+
+  async function loadStats() {
+    try {
+      const stats = await apiRequest("/api/stats");
+      displayStats(stats);
+      createChart(stats.by_major);
+    } catch (error) {
+      document.getElementById("stats-content").innerHTML =
+        '<div class="alert alert-danger">Không thể tải thống kê</div>';
+    }
+  }
+
+  function displayStats(stats) {
+    const container = document.getElementById("stats-content");
+    container.innerHTML = `
+        <div class="row text-center">
+            <div class="col-6">
+                <h3 class="mb-0">${stats.total_students}</h3>
+                <small>Tổng sinh viên</small>
+            </div>
+            <div class="col-6">
+                <h3 class="mb-0">${stats.by_major.length}</h3>
+                <small>Chuyên ngành</small>
+            </div>
+        </div>
+        <hr class="my-3" style="border-color: rgba(255,255,255,0.3)">
+        <div class="mb-0">
+            <h6>Top chuyên ngành:</h6>
+            ${stats.by_major
+              .slice(0, 3)
+              .map(
+                (major) => `
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small>${major.major}</small>
+                    <span class="badge bg-light text-dark">${major.count}</span>
+                </div>
+            `
+              )
+              .join("")}
+        </div>
+    `;
+  }
+
+  function createChart(majorData) {
+    const ctx = document.getElementById("majorChart").getContext("2d");
+
+    if (chart) {
+      chart.destroy();
+    }
+
+    if (majorData.length === 0) {
+      ctx.fillText("Chưa có dữ liệu", 50, 50);
+      return;
+    }
+
+    chart = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: majorData.map((m) => m.major),
+        datasets: [
+          {
+            data: majorData.map((m) => m.count),
+            backgroundColor: [
+              "#FF6384",
+              "#36A2EB",
+              "#FFCE56",
+              "#4BC0C0",
+              "#9966FF",
+              "#FF9F40",
+              "#FF6384",
+              "#C9CBCF",
+            ],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              fontSize: 12,
+              usePointStyle: true,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  function editStudent(id) {
+    const student = studentsData.find((s) => s.id === id);
+    if (!student) return;
+
+    document.getElementById("editStudentId").value = student.id;
+    document.getElementById("editName").value = student.name;
+    document.getElementById("editEmail").value = student.email;
+    document.getElementById("editAge").value = student.age || "";
+    document.getElementById("editMajor").value = student.major || "";
+
+    const modal = new bootstrap.Modal(document.getElementById("editModal"));
+    modal.show();
+  }
+
+  async function updateStudent() {
+    const id = document.getElementById("editStudentId").value;
+    const name = document.getElementById("editName").value;
+    const email = document.getElementById("editEmail").value;
+    const age = document.getElementById("editAge").value;
+    const major = document.getElementById("editMajor").value;
+
+    if (!name || !email) {
+      showToast("Vui lòng nhập đầy đủ thông tin bắt buộc", "error");
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/students/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          age: age ? parseInt(age) : null,
+          major: major || null,
+        }),
+      });
+
+      showToast("Cập nhật sinh viên thành công");
+      bootstrap.Modal.getInstance(document.getElementById("editModal")).hide();
+      loadStudents();
+      loadStats();
+    } catch (error) {
+      // Error is already shown by apiRequest
+    }
+  }
+
+  async function deleteStudent(id, name) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa sinh viên "${name}"?`)) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/api/students/${id}`, {
+        method: "DELETE",
+      });
+
+      showToast("Xóa sinh viên thành công");
+      loadStudents();
+      loadStats();
+    } catch (error) {
+      // Error is already shown by apiRequest
+    }
+  }
+</script>
+{% endblock %}

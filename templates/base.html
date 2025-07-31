@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Quản lý sinh viên{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      .navbar-brand {
+        font-weight: bold;
+      }
+      .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid rgba(0, 0, 0, 0.125);
+      }
+      .btn-outline-primary:hover {
+        transform: translateY(-1px);
+      }
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+      .student-card {
+        transition: transform 0.2s;
+      }
+      .student-card:hover {
+        transform: translateY(-2px);
+      }
+      .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="/">
+          <i class="fas fa-university"></i> Quản lý sinh viên
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="fas fa-list"></i> Danh sách
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/add_student">
+                <i class="fas fa-plus"></i> Thêm sinh viên
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">{% block content %}{% endblock %}</div>
+
+    <!-- Toast notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="toast" class="toast" role="alert">
+        <div class="toast-header">
+          <strong class="me-auto">Thông báo</strong>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="toast"
+          ></button>
+        </div>
+        <div class="toast-body" id="toast-body">
+          <!-- Message will be inserted here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Utility functions
+      function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        const toastBody = document.getElementById("toast-body");
+        const toastHeader = toast.querySelector(".toast-header");
+
+        // Remove existing classes
+        toast.classList.remove("bg-success", "bg-danger", "bg-warning");
+
+        // Add appropriate class
+        if (type === "success") {
+          toast.classList.add("bg-success", "text-white");
+        } else if (type === "error") {
+          toast.classList.add("bg-danger", "text-white");
+        } else if (type === "warning") {
+          toast.classList.add("bg-warning");
+        }
+
+        toastBody.textContent = message;
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+      }
+
+      function showLoading(show = true) {
+        const loadingElements = document.querySelectorAll(".loading");
+        loadingElements.forEach((el) => {
+          el.style.display = show ? "block" : "none";
+        });
+      }
+
+      // API helper functions
+      async function apiRequest(url, options = {}) {
+        try {
+          showLoading(true);
+          const response = await fetch(url, {
+            headers: {
+              "Content-Type": "application/json",
+              ...options.headers,
+            },
+            ...options,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Có lỗi xảy ra");
+          }
+
+          return data;
+        } catch (error) {
+          showToast(error.message, "error");
+          throw error;
+        } finally {
+          showLoading(false);
+        }
+      }
+    </script>
+
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
